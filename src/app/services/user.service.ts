@@ -33,6 +33,8 @@ export class UserService implements OnDestroy {
   private destroy$ = new Subject<void>();
   /** SSE 连接是否正在监听 */
   private isSSEConnecting = false;
+  /** 浏览器是否支持 SSE */
+  private isSSESupported: boolean;
 
   /**
    * 依赖注入 HttpClient
@@ -40,8 +42,25 @@ export class UserService implements OnDestroy {
    * 这是依赖注入(DI)设计模式的典型应用
    */
   constructor(private http: HttpClient) {
-    // 初始化时尝试建立 SSE 连接
-    this.setupSSE();
+    // 检测浏览器是否支持 SSE
+    this.isSSESupported = this.checkSSESupport();
+
+    if (this.isSSESupported) {
+      // 支持 SSE，尝试建立连接
+      this.setupSSE();
+    } else {
+      console.log('当前浏览器不支持 SSE，使用定期检测方案');
+      // 不支持 SSE，直接启动定期检测
+      this.startPeriodicCheck();
+    }
+  }
+
+  /**
+   * 检测浏览器是否支持 SSE
+   * EventSource 是浏览器原生 API，IE 全系列不支持
+   */
+  private checkSSESupport(): boolean {
+    return typeof window !== 'undefined' && typeof window.EventSource !== 'undefined';
   }
 
   /**
@@ -64,6 +83,10 @@ export class UserService implements OnDestroy {
    * 1. 简单基于 HTTP，无需握手协议
    * 2. 浏览器自动处理重连
    * 3. 单向通信，适合服务端推送场景
+   *
+   * 浏览器兼容性：
+   * - Chrome 6+, Firefox 6+, Safari 5.1+, Edge 79+ 支持
+   * - Internet Explorer 全系列不支持
    */
   private setupSSE(): void {
     // 防止重复创建连接

@@ -56,7 +56,23 @@ The frontend automatically switches between two API sources:
 - **SSE Notification**: When the backend starts, it sends an SSE notification to the frontend
 - **Automatic Switching**: The frontend switches to the local API when it receives the notification
 - **Fallback Mechanism**: If the backend is not available, the frontend uses the fallback API
-- **Periodic Check**: If SSE fails, the frontend checks the backend status every 30 seconds
+- **Periodic Check**: If SSE fails or browser doesn't support SSE, the frontend checks the backend status every 60 seconds
+
+### Browser Compatibility
+
+EventSource (SSE) browser support:
+
+| Browser | Support |
+|---------|---------|
+| Chrome | 6+ ✅ |
+| Firefox | 6+ ✅ |
+| Safari | 5.1+ ✅ |
+| Edge | 79+ ✅ |
+| Opera | 11.6+ ✅ |
+| iOS Safari | 4.2+ ✅ |
+| **Internet Explorer** | **Not supported** ❌ |
+
+> **Note**: If the browser doesn't support SSE or SSE connection fails, the system falls back to periodic checking every 60 seconds.
 
 ## Database
 
@@ -212,7 +228,23 @@ npm run start:dev
 - **SSE 通知**: 后端启动时，通过 Server-Sent Events 向前端发送通知
 - **自动切换**: 前端收到通知后切换到本地 API
 - **备用机制**: 如果后端不可用，前端使用备用 API
-- **定期检查**: 如果 SSE 失败，前端每 30 秒检查一次后端状态
+- **定期检查**: 如果 SSE 失败或浏览器不支持 SSE，前端每 60 秒检查一次后端状态
+
+### 浏览器兼容性
+
+EventSource (SSE) 浏览器支持情况：
+
+| 浏览器 | 支持版本 |
+|--------|---------|
+| Chrome | 6+ ✅ |
+| Firefox | 6+ ✅ |
+| Safari | 5.1+ ✅ |
+| Edge | 79+ ✅ |
+| Opera | 11.6+ ✅ |
+| iOS Safari | 4.2+ ✅ |
+| **Internet Explorer** | **全系列不支持** ❌ |
+
+> **注意**: 如果浏览器不支持 SSE 或 SSE 连接失败，系统会回退到每 60 秒定期检查一次。
 
 ## 数据库
 
