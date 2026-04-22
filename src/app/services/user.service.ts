@@ -19,14 +19,16 @@ import { User } from '../models/user';
 export class UserService {
   /** 本地后端 API 地址 */
   private localApiUrl = 'http://localhost:3000/users';
+  /** SSE 事件流地址 */
+  private sseUrl = 'http://localhost:3000/events/stream';
   /** 备用 API 地址（jsonplaceholder） */
   private fallbackApiUrl = 'https://jsonplaceholder.typicode.com/users';
   /** 当前使用的 API 地址 */
   private currentApiUrl: string = this.fallbackApiUrl;
   /** 后端服务是否可用 */
   private isLocalBackendAvailable = false;
-  /** WebSocket 连接实例 */
-  private socket: WebSocket | null = null;
+  /** EventSource 实例 */
+  private eventSource: EventSource | null = null;
 
   /**
    * 依赖注入 HttpClient
@@ -36,47 +38,46 @@ export class UserService {
   constructor(private http: HttpClient) {
     // 初始化时检测后端服务
     this.checkBackendStatus();
-    // 尝试建立 WebSocket 连接
-    this.setupWebSocket();
+    // 尝试建立 SSE 连接
+    this.setupSSE();
   }
 
   /**
-   * 建立 WebSocket 连接
-   * 监听后端启动通知
+   * 建立 SSE 连接
+   * 使用 Server-Sent Events 监听后端启动通知
    */
-  private setupWebSocket(): void {
+  private setupSSE(): void {
     try {
-      // 连接到后端 WebSocket 服务
-      this.socket = new WebSocket('ws://localhost:3000');
-      
-      this.socket.onopen = () => {
-        console.log('WebSocket 连接已建立');
+      // 连接到后端 SSE 端点
+      this.eventSource = new EventSource(this.sseUrl);
+
+      this.eventSource.onopen = () => {
+        console.log('SSE 连接已建立');
       };
-      
-      this.socket.onmessage = (event) => {
+
+      this.eventSource.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
           if (data.message === 'Backend service started') {
             this.switchToLocalApi();
           }
         } catch (error) {
-          console.error('WebSocket 消息解析错误:', error);
+          console.error('SSE 消息解析错误:', error);
         }
       };
-      
-      this.socket.onclose = () => {
-        console.log('WebSocket 连接已关闭');
-        // 连接关闭后，恢复定期检测（30秒一次）
-        this.startPeriodicCheck();
-      };
-      
-      this.socket.onerror = (error) => {
-        console.error('WebSocket 连接错误:', error);
+
+      this.eventSource.onerror = (error) => {
+        console.error('SSE 连接错误:', error);
+        // 关闭并清理 EventSource
+        if (this.eventSource) {
+          this.eventSource.close();
+          this.eventSource = null;
+        }
         // 连接错误后，恢复定期检测（30秒一次）
         this.startPeriodicCheck();
       };
     } catch (error) {
-      console.error('WebSocket 初始化失败:', error);
+      console.error('SSE 初始化失败:', error);
       // 初始化失败后，恢复定期检测（30秒一次）
       this.startPeriodicCheck();
     }
@@ -84,7 +85,7 @@ export class UserService {
 
   /**
    * 启动定期检测
-   * 当 WebSocket 不可用时作为备用方案
+   * 当 SSE 不可用时作为备用方案
    */
   private startPeriodicCheck(): void {
     // 每30秒检测一次（比之前的10秒更长，减少网络请求）
@@ -99,6 +100,11 @@ export class UserService {
       this.isLocalBackendAvailable = true;
       this.currentApiUrl = this.localApiUrl;
       console.log('接收到后端启动通知，切换到本地 API');
+      // 关闭 SSE 连接，因为已经成功切换
+      if (this.eventSource) {
+        this.eventSource.close();
+        this.eventSource = null;
+      }
     }
   }
 

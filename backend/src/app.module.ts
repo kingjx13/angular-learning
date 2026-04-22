@@ -3,7 +3,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { StatusGateway } from './gateway/status.gateway';
+import { SseController } from './events/sse.controller';
 
 /**
  * 主应用模块
@@ -22,7 +22,7 @@ import { StatusGateway } from './gateway/status.gateway';
     }),
     UsersModule,
   ],
-  controllers: [AppController],
-  providers: [AppService, StatusGateway],
+  controllers: [AppController, SseController],
+  providers: [AppService],
 })
 export class AppModule {}
